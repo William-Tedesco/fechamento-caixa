@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fechamento de Caixa – Idealize Saúde</title>
+  <script defer>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxSarcDAfZo6bP3vrJrx111w9Cc6oD7IYKTWAShWY6wCI7ZpfmZoB1ACRRwvjDMJIeE/exec"; // URL do Web App
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // DOM refs
+      const form            = document.getElementById('caixaForm');
+      const debitStoneInput = document.getElementById('debito_stone');
+      const stoneJustWrap   = document.getElementById('just_stone_wrap');
+      const saldoInicialInp = document.getElementById('saldo_inicial');
+      const dinheiroInput   = document.getElementById('dinheiro');
+      const sangriaInput    = document.getElementById('sangria');
+      const saldoInput      = document.getElementById('saldo_fisico');
+
+      // Mostrar/ocultar justificativa Stone
+      const toggleStoneJust = () => {
+        stoneJustWrap.style.display = parseFloat(debitStoneInput.value || 0) > 0 ? 'block' : 'none';
+      };
+      debitStoneInput.addEventListener('input', toggleStoneJust);
+
+      // Calcular saldo físico
+      const calcSaldo = () => {
+        const inicial = parseFloat(saldoInicialInp.value || 0);
+        const dinheiro = parseFloat(dinheiroInput.value || 0);
+        const sangria  = parseFloat(sangriaInput.value  || 0);
+        saldoInput.value = (inicial + dinheiro - sangria).toFixed(2);
+      };
+      [saldoInicialInp, dinheiroInput, sangriaInput].forEach(el => el.addEventListener('input', calcSaldo));
+      toggleStoneJust();
+      calcSaldo();
+
+      // Envio do formulário
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(form).entries());
+        ['saldo_inicial','dinheiro','pix','debito_saude','debito_stone','credito_vista','credito_parcelado','vindi','sangria']
+          .forEach(k => { if (!data[k]) data[k] = 0; });
+        data['saldo_fisico'] = (parseFloat(data['saldo_inicial']) + parseFloat(data['dinheiro']) - parseFloat(data['sangria'])).toFixed(2);
+
+        try {
+          await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', body: JSON.stringify(data) });
+          alert('Fechamento enviado com sucesso!');
+          form.reset();
+          toggleStoneJust();
+          calcSaldo();
+        } catch(err) {
+          alert('Erro ao enviar. Tente novamente.');
+          console.error(err);
+        }
+      });
+    });
+  </script>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:1rem;background:#f5f7fa}
+    .logo{position:absolute;top:12px;right:12px;width:70px;height:auto}
+    .card{max-width:680px;margin:auto;background:#fff;padding:1.6rem 2rem 2rem;border-radius:14px;box-shadow:0 3px 9px rgba(0,0,0,.08);position:relative}
+    label{display:block;margin-top:1rem;font-weight:600}
+    input,select,textarea{width:100%;padding:.55rem;border:1px solid #ccc;border-radius:6px;font-size:15px}
+    input[readonly]{background:#f0f0f0}
+    small{color:#555;font-weight:400}
+    button{margin-top:1.6rem;padding:.75rem 1.4rem;border:none;border-radius:8px;background:#0066cc;color:#fff;font-size:15px;cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <!-- Logo -->
+    <img src="Logo.png" alt="Logo Idealize Saúde" class="logo" />
+
+    <h2 style="margin-top:0;">Fechamento de Caixa</h2>
+    <form id="caixaForm">
+      <label>Data</label>
+      <input type="date" name="data" required />
+
+      <label>Responsável</label>
+      <select name="responsavel" required>
+        <option value="">Selecione…</option>
+        <option>João</option>
+        <option>Juliana</option>
+        <option>Rafael</option>
+        <option>Thamy</option>
+      </select>
+
+      <label>Saldo inicial para troco (R$)</label>
+      <input type="number" step="0.01" name="saldo_inicial" id="saldo_inicial" min="0" value="0" />
+
+      <label>Dinheiro recebido (R$)</label>
+      <input type="number" step="0.01" name="dinheiro" id="dinheiro" min="0" value="0" />
+
+      <label>PIX (R$) <small>(Banco Inter)</small></label>
+      <input type="number" step="0.01" name="pix" min="0" value="0" />
+
+      <!-- Cartão Débito -->
+      <fieldset style="margin-top:1rem;border:1px solid #ddd;padding:1rem;border-radius:8px">
+        <legend><strong>Cartão Débito</strong></legend>
+        <label>Saúde Service (R$)</label>
+        <input type="number" step="0.01" name="debito_saude" min="0" value="0" />
+
+        <label>Stone (R$)</label>
+        <input type="number" step="0.01" id="debito_stone" name="debito_stone" min="0" value="0" />
+        <div id="just_stone_wrap" style="display:none;">
+          <label>Justifique uso da Stone (taxa maior)</label>
+          <textarea name="just_stone" rows="2"></textarea>
+        </div>
+      </fieldset>
+
+      <!-- Cartão Crédito -->
+      <fieldset style="margin-top:1rem;border:1px solid #ddd;padding:1rem;border-radius:8px">
+        <legend><strong>Cartão Crédito – Stone (Banco Sicredi)</strong></legend>
+        <label>Crédito à vista (R$)</label>
+        <input type="number" step="0.01" name="credito_vista" min="0" value="0" />
+        <label>Crédito parcelado (R$)</label>
+        <input type="number" step="0.01" name="credito_parcelado" min="0" value="0" />
+      </fieldset>
+
+      <label>Cobranças Recorrentes Vindi (R$) <small>(Banco Inter)</small></label>
+      <input type="number" step="0.01" name="vindi" min="0" value="0" />
+
+      <label>Sangria / Retirada para Despesas (R$)</label>
+      <input type="number" step="0.01" name="sangria" id="sangria" min="0" value="0" />
+
+      <label>Saldo físico contado (R$)</label>
+      <input type="number" step="0.01" name="saldo_fisico" id="saldo_fisico" readonly />
+
+      <label>Observações</label>
+      <textarea name="obs" rows="3"></textarea>
+
+      <button type="submit">Enviar fechamento</button>
+    </form>
+  </div>
+</body>
+</html>
